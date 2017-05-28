@@ -70,6 +70,16 @@ public class LazySearchTree<E extends Comparable< ? super E > >
     }
 
     /**
+     * Finds smallest hard value
+     * @return smallest hard value
+     */
+    public E findMinHard(){
+        if (mRoot == null)
+            throw new NoSuchElementException();
+        return findMinHard(mRoot).data;
+    }
+
+    /**
      * Finds largest soft value
      * @return largest soft datum
      */
@@ -77,6 +87,16 @@ public class LazySearchTree<E extends Comparable< ? super E > >
         if (mRoot == null)
             throw new NoSuchElementException();
         return findMax(mRoot).data;
+    }
+
+    /**
+     * finds largest hard value
+     * @return largest hard value
+     */
+    public E findMaxHard(){
+        if (mRoot == null)
+            throw new NoSuchElementException();
+        return findMaxHard(mRoot).data;
     }
 
     /**
@@ -124,6 +144,17 @@ public class LazySearchTree<E extends Comparable< ? super E > >
     }
 
     /**
+     * Hard removal of a node
+     * @param x data to remove from tree
+     * @return boolean value on operation state
+     */
+    public boolean removeHard(E x){
+        int oldSize = mSize;
+        mRoot = removeHard(mRoot, x);
+        return (mSize != oldSize);
+    }
+
+    /**
      * Traverses the tree (softly, and thus ignoring "deleted" nodes
      * @param func printObject(s) in this case
      * @param <F> as above
@@ -158,6 +189,16 @@ public class LazySearchTree<E extends Comparable< ? super E > >
         return newObject;
     }
 
+    /**
+     * Garbage collector
+     * @return boolean value of operation
+     */
+    public boolean collectGarbage(){
+        int oldSize = mSize;
+        mRoot = collectGarbage(mRoot);
+        return (mSize != oldSize);
+    }
+
     // private helper methods ----------------------------------------
 
     /**
@@ -177,6 +218,19 @@ public class LazySearchTree<E extends Comparable< ? super E > >
     }
 
     /**
+     * Takes tree root and finds smallest value (incl del)
+     * @param root tree to search
+     * @return node of min (inc del)
+     */
+    protected LazySTNode findMinHard(LazySTNode root){
+        if (root == null)
+            return null;
+        if (root.lftChild == null)
+            return root;
+        return findMinHard(root.lftChild);
+    }
+
+    /**
      * Takes a tree root and finds largest value
      * @param root tree to search
      * @return node that contains highest value
@@ -193,10 +247,23 @@ public class LazySearchTree<E extends Comparable< ? super E > >
     }
 
     /**
+     * Takes tree root and finds largest(inc del)
+     * @param root tree to search
+     * @return node with max value (inc del)
+     */
+    protected LazySTNode findMaxHard(LazySTNode root){
+        if (root == null)
+            return null;
+        if (root.rtChild == null)
+            return root;
+        return findMaxHard(root.lftChild);
+    }
+
+    /**
      * Insertion function for tree
      * @param root tree to add to
      * @param x data to wrap and add to tree
-     * @return
+     * @return tree root
      */
     protected LazySTNode insert(LazySTNode root, E x) {
         int compareResult;  // avoid multiple calls to compareTo()
@@ -233,6 +300,32 @@ public class LazySearchTree<E extends Comparable< ? super E > >
             temp.deleted = true;
             mSize--;
         }
+    }
+
+    /**
+     * Original Remove function for BST
+     * @param root tree to remove from
+     * @param x data to remove
+     * @return tree w/o data data in nodes
+     */
+    protected LazySTNode removeHard(LazySTNode root, E x){
+        int compareResult;
+        if(root == null)
+            return null;
+        compareResult = x.compareTo(root.data);
+        if (compareResult < 0)
+            root.lftChild = removeHard(root.lftChild, x);
+        else if (compareResult > 0)
+            root.rtChild = removeHard(root.rtChild, x);
+        else if (root.lftChild != null && root.rtChild != null){
+            root.data = findMin(root.rtChild).data;
+            root.rtChild = removeHard(root.rtChild, root.data);
+        }
+        else {
+            root = (root.lftChild != null)? root.lftChild : root.rtChild;
+            mSizeHard--;
+        }
+        return root;
     }
 
     /**
@@ -320,6 +413,22 @@ public class LazySearchTree<E extends Comparable< ? super E > >
         return (leftHeight > rightHeight) ? leftHeight : rightHeight;
     }
 
+    /**
+     * Garbage collector, deletes lazily deleted nodes
+     * @param root tree to search
+     * @return cleaned tree
+     */
+    protected LazySTNode collectGarbage(LazySTNode root){
+        if(root == null)
+            return null;
+
+        root.lftChild = collectGarbage(root.lftChild);
+        root.rtChild = collectGarbage(root.rtChild);
+
+        if(root.deleted)
+            root = removeHard(root, root.data);
+        return root;
+    }
 
     /**
      * LazyTree node class
